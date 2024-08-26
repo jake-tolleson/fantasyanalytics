@@ -34,7 +34,7 @@ one or two can be specified.
 Installation of the `ffanalytics` package can be done directly from github:
 ```
 install.packages("remotes")
-remotes::install_github("FantasyFootballAnalytics/ffanalytics")
+remotes::install_github("jake-tolleson/ffanalytics")
 ```
 
 ## Projection sources
