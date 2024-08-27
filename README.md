@@ -31,10 +31,10 @@ one or two can be specified.
 
 
 ## Installation
-Installation of the `ffanalytics` package can be done directly from github:
+Installation of the `fantasyanalytics` package can be done directly from github:
 ```
 install.packages("remotes")
-remotes::install_github("jake-tolleson/ffanalytics")
+remotes::install_github("jake-tolleson/fantasyanalytics")
 ```
 
 ## Projection sources
