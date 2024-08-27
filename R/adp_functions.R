@@ -59,7 +59,8 @@ cbs_draft = function(metric = "adp") {
     return(out_df)
   }
 
-  draft_url <- "https://www.cbssports.com/fantasy/football/draft/averages/both/h2h/all"
+  #draft_url <- "https://www.cbssports.com/fantasy/football/draft/averages/both/h2h/all"
+  draft_url <- "https://www.cbssports.com/fantasy/football/draft/averages/ppr/both/h2h/all"
 
   draft_page <- rvest::read_html(draft_url)
 
@@ -240,7 +241,8 @@ mfl_draft = function(metric = c("adp", "aav"),
 
   period = match.arg(toupper(period), c("RECENT", "ALL", "DRAFT", "JUNE", "JULY", "AUG1", "AUG15", "START", "MID", "PLAYOFF"))
   fcount = match.arg(as.character(nteams), as.character(c(12, 8, 10, 14, 16)))
-  format = match.arg(as.character(format), c("All Leagues", "PPR", "Std"))
+  #format = match.arg(as.character(format), c("All Leagues", "PPR", "Std"))
+  format = "PPR"
   is_keeper = match.arg(is_keeper, c("No", "Keeper", "Rookie Only"))
   is_mock = match.arg(as.character(is_mock), c("No", "Mock", "All Leagues"))
   cutoff = as.integer(cutoff)
@@ -326,7 +328,8 @@ ffc_draft <- function(format= c("standard", "ppr", "half-ppr", "2qb", "dynasty",
                       n_teams = c("12", "8", "10", "14"),
                       metric = "adp"){
 
-  format <- match.arg(format, c("standard", "ppr", "half-ppr", "2qb", "dynasty", "rookie"))
+  #format <- match.arg(format, c("standard", "ppr", "half-ppr", "2qb", "dynasty", "rookie"))
+  format <- "ppr"
   pos <- match.arg(pos, c("all", "qb", "rb", "wr", "te", "def", "pk"))
   n_teams <- match.arg(n_teams, c("12", "8", "10", "14"))
 
@@ -457,7 +460,8 @@ espn_draft <- function(metric = c("adp", "aav")){
         # Misc player info
         l_players[[i]]$espn_id = espn_json[[i]]$id
         l_players[[i]]$player_name = espn_json[[i]]$player$fullName
-        l_players[[i]]$team = espn_team_nums[as.character(espn_json[[i]]$player$proTeamId)]
+        #l_players[[i]]$team = espn_team_nums[as.character(espn_json[[i]]$player$proTeamId)]
+        l_players[[i]]$team = espn_json[[i]]$player$proTeamId
         l_players[[i]]$position = pos
       }
 
