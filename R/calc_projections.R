@@ -499,9 +499,9 @@ add_ecr <- function(projection_table){
 #' \code{c("RTS", "CBS", "MFL", "Yahoo", "NFL", "FFC")}
 #' @export
 add_adp <- function(projection_table,
-                    sources = c("RTS", "CBS", "Yahoo", "NFL", "FFC", "MFL")){
+                    sources = c("RTS", "CBS", "ESPN", "FFC", "MFL")){
 
-  sources <- match.arg(sources, c("RTS", "CBS", "Yahoo", "NFL", "FFC", "MFL"), several.ok = TRUE)
+  sources <- match.arg(sources, c("RTS", "CBS", "Yahoo", "NFL", "FFC", "MFL", "ESPN"), several.ok = TRUE)
 
   lg_type <- attr(projection_table, "lg_type")
   season <- attr(projection_table, "season")
