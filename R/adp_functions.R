@@ -229,7 +229,7 @@ nfl_draft = function(metric = "adp") {
 #' @export
 mfl_draft = function(metric = c("adp", "aav"),
                      period = c("RECENT", "ALL", "DRAFT", "JUNE", "JULY", "AUG1", "AUG15", "START", "MID", "PLAYOFF"),
-                     format = c("All Leagues", "PPR", "Std"),
+                     format = c("PPR"),
                      nteams = c(12, 8, 10, 14, 16),
                      is_keeper = c("No", "Keeper", "Rookie Only"),
                      is_mock = c("No", "Mock", "All Leagues"),
@@ -241,8 +241,7 @@ mfl_draft = function(metric = c("adp", "aav"),
 
   period = match.arg(toupper(period), c("RECENT", "ALL", "DRAFT", "JUNE", "JULY", "AUG1", "AUG15", "START", "MID", "PLAYOFF"))
   fcount = match.arg(as.character(nteams), as.character(c(12, 8, 10, 14, 16)))
-  #format = match.arg(as.character(format), c("All Leagues", "PPR", "Std"))
-  format = "PPR"
+  format = match.arg(as.character(format), c("All Leagues", "PPR", "Std"), several.ok=TRUE)
   is_keeper = match.arg(is_keeper, c("No", "Keeper", "Rookie Only"))
   is_mock = match.arg(as.character(is_mock), c("No", "Mock", "All Leagues"))
   cutoff = as.integer(cutoff)
@@ -323,13 +322,12 @@ mfl_draft = function(metric = c("adp", "aav"),
 #' @param season Indicates the season that data should be returned for.
 #' @return A \link{data.frame} with the results.
 #' @export
-ffc_draft <- function(format= c("standard", "ppr", "half-ppr", "2qb", "dynasty", "rookie"),
+ffc_draft <- function(format= c("ppr"),
                       pos = c("all", "qb", "rb", "wr", "te", "def", "pk"),
                       n_teams = c("12", "8", "10", "14"),
                       metric = "adp"){
 
-  #format <- match.arg(format, c("standard", "ppr", "half-ppr", "2qb", "dynasty", "rookie"))
-  format <- "ppr"
+  format <- match.arg(format, c("standard", "ppr", "half-ppr", "2qb", "dynasty", "rookie"), several.ok=TRUE)
   pos <- match.arg(pos, c("all", "qb", "rb", "wr", "te", "def", "pk"))
   n_teams <- match.arg(n_teams, c("12", "8", "10", "14"))
 
