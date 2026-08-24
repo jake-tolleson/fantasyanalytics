@@ -65,16 +65,16 @@ final_nfl = dplyr::bind_rows(scrape_nfl) %>%
 
 
 #### NUmber fire #### ----
-scrape_nf = scrape_numberfire()
-
-final_nf = scrape_nf %>%
-  dplyr::bind_rows() %>%
-  transmute(player = ifelse(pos == "DST", team, player),
-            merge_id = gsub("[[:punct:]]|\\s+", "", tolower(player)),
-            merge_id = paste0(gsub("\\s+", "", merge_id), "_", tolower(pos)),
-            numfire_id = src_id,
-            id,
-            player = NULL)
+# scrape_nf = scrape_data(src = "NumberFire")
+#
+# final_nf = scrape_nf %>%
+#   dplyr::bind_rows() %>%
+#   transmute(player = ifelse(pos == "DST", team, player),
+#             merge_id = gsub("[[:punct:]]|\\s+", "", tolower(player)),
+#             merge_id = paste0(gsub("\\s+", "", merge_id), "_", tolower(pos)),
+#             numfire_id = src_id,
+#             id,
+#             player = NULL)
 
 
 
@@ -108,7 +108,7 @@ final_flfl = ff_scrape %>%
 
 #### Yahoo ----
 
-yahoo_draft_info = ffanalytics:::yahoo_draft()
+yahoo_draft_info = yahoo_draft()
 
 final_yahoo = yahoo_draft_info %>%
   transmute(merge_id = gsub("[[:punct:]]|\\s+", "", tolower(player_name)),
@@ -118,7 +118,7 @@ final_yahoo = yahoo_draft_info %>%
 
 
 # Getting ESPN ID's
-scrape_espn = ffanalytics:::scrape_espn()
+scrape_espn = ffanalytics:::scrape_espn(espn_league_id = 1595759)
 
 final_espn = scrape_espn %>%
   dplyr::bind_rows() %>%
@@ -139,7 +139,7 @@ gc()
 
 curr_ids = ffanalytics:::player_ids
 
-my_fl_ids = httr::GET("https://api.myfantasyleague.com/2024/export?TYPE=players&L=&APIKEY=&DETAILS=1&SINCE=&PLAYERS=&JSON=1") %>%
+my_fl_ids = httr::GET("https://api.myfantasyleague.com/2026/export?TYPE=players&L=&APIKEY=&DETAILS=1&SINCE=&PLAYERS=&JSON=1") %>%
   httr::content() %>%
   `[[`("players") %>%
   `[[`("player") %>%
@@ -237,7 +237,7 @@ dim(ffanalytics:::player_ids)
 dim(curr_ids)
 
 
-curr_ids[curr_ids$id %in% curr_ids$id[duplicated(curr_ids$id)], ] |> View()
+curr_ids[curr_ids$id %in% curr_ids$id[duplicated(curr_ids$id)], ]
 
 
 
@@ -251,6 +251,25 @@ colSums(!is.na(curr_ids)) - colSums(!is.na(ffanalytics:::player_ids))
 sum(duplicated(curr_ids$id))
 sum(duplicated(ffanalytics:::player_ids))
 
+
+# Updating specific ID with an issue
+
+
+
+
+# Adding gsis-id and sleeper (will add more robust sleeper pull directly to their
+# API)
+nflr_ids = nflreadr::load_ff_playerids() %>%
+  select(mfl_id, gsis_id, sleeper_id)
+
+curr_ids = curr_ids %>%
+  left_join(nflr_ids, c("id" = "mfl_id"))
+
+curr_ids = curr_ids[!grepl("\\.(x|y)", names(curr_ids))]
+
+
+
+# Writing temp file
 temp_file = tempfile(fileext = ".rds")
 print(temp_file)
 saveRDS(curr_ids, temp_file)

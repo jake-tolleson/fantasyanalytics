@@ -7,7 +7,7 @@
 #' @param src the sources that data should be scraped from should be one or more
 #' of \code{c("CBS", "ESPN", "FantasyData", "FantasyPros", "FantasySharks",
 #' "FFToday", "FleaFlicker", "NumberFire", "Yahoo", "FantasyFootballNerd", "NFL",
-#' "RTSports","Walterfootball")}
+#' "RTSports","Walterfootball", "FanDuel")}
 #' @param pos the posistions that data should be scraped for. Should be one or more
 #' of \code{c("QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB")}
 #' @param season The seaon for which data should be scraped. Should be set to the
@@ -18,7 +18,7 @@
 scrape_data <- function(
   src = c("CBS", "ESPN", "FantasyPros", "FantasySharks", "FFToday",
           "FleaFlicker", "NumberFire", "FantasyFootballNerd", "NFL",
-          "RTSports", "Walterfootball"),
+          "RTSports", "Walterfootball", "FanDuel"),
   pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB"),
   season = NULL, week = NULL, ...){
 
@@ -32,12 +32,29 @@ scrape_data <- function(
   src = match.arg(src, several.ok = TRUE,
                   c("CBS", "ESPN", "FantasyData", "FantasyPros", "FantasySharks", "FFToday",
                     "FleaFlicker", "NumberFire", "FantasyFootballNerd", "NFL",
-                    "RTSports","Walterfootball"))
+                    "RTSports", "Walterfootball", "FanDuel")
+                  )
+
+  # Check for NumberFire in src and convert to FanDuel
+  if("NumberFire" %in% src) {
+    message("\nHeads up! NumberFire is now FanDuel... Using FanDuel for scrape")
+
+    src <- src[src != "NumberFire"]
+
+    if(!("FanDuel" %in% src)) {
+      src <- c(src, "FanDuel")
+    }
+  }
+
   pos = match.arg(pos, several.ok = TRUE,
                   c("QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB"))
 
   args = list(pos = pos, season = season, week = week)
   additional_args = list(...)
+
+  if(!"espn_league_id" %in% names(additional_args)) {
+    additional_args[["espn_league_id"]] = 1595759
+  }
   args = c(args, additional_args)
   args = args[nchar(names(args)) > 0]
 

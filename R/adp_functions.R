@@ -120,7 +120,7 @@ yahoo_draft = function(metric = c("adp", "aav")) {
     return(out_df)
   }
 
-  req_obj = request("https://pub-api-ro.fantasysports.yahoo.com/fantasy/v2/league/449.l.public;out=settings/players;position=ALL;start=0;count=200;sort=rank_season;search=;out=auction_values;out=expert_ranks;expert_ranks.rank_type=projected_season_remaining/draft_analysis;cut_types=diamond;slices=last7days?format=json_f") %>%
+  req_obj = request("https://pub-api-ro.fantasysports.yahoo.com/fantasy/v2/league/470.l.public;out=settings/players;position=ALL;start=0;count=200;sort=average_cost;search=;out=auction_values,ranks;ranks=season;ranks_by_position=season;out=expert_ranks;expert_ranks.rank_type=projected_season_remaining/draft_analysis;cut_types=diamond;slices=last7days?format=json_f") %>%
     req_method("GET") %>%
     req_headers(
       Accept = "*/*",
@@ -385,7 +385,7 @@ espn_draft <- function(metric = c("adp", "aav")){
   metric = match.arg(tolower(metric), c("adp", "aav"))
   obj_name = "ESPN ADP/AAV"
   is_cached = obj_name %in% list_ffanalytics_cache(quiet = TRUE)$object
-  season = ffanalytics:::get_scrape_year()
+  season = get_scrape_year()
 
   if(is_cached) {
     l_pos = get_cached_object("espn_adp_aav.rds")
@@ -466,12 +466,12 @@ espn_draft <- function(metric = c("adp", "aav")){
       out_df = dplyr::bind_rows(l_players)
 
       if(pos == "DST") { # ESPN ID's coming in as negative for 2023 wk 0 DST
-        out_df$id = ffanalytics:::get_mfl_id(
+        out_df$id = get_mfl_id(
           team = out_df$team,
           pos = out_df$position
         )
       } else {
-        out_df$id = ffanalytics:::get_mfl_id(
+        out_df$id = get_mfl_id(
           out_df$espn_id,
           player_name = out_df$player_name,
           pos = out_df$position

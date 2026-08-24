@@ -98,18 +98,68 @@ wilcox.loc <- function(vec, na.rm = FALSE, w = NULL){
 #'
 #' These are the weights that are used for each source when calculation weighted
 #' averages and standard deviations if no weights are specified.
-#' \code{c(CBS = 0.344, Yahoo = 0.400,  ESPN = 0.329,  NFL = 0.329,
-#' FFToday = 0.379, NumberFire = 0.322, FantasyPros = 0.000,
-#' FantasySharks = 0.327, FantasyFootballNerd = 0.000,
-#' Walterfootball = 0.281, RTSports = 0.330,
-#' FantasyData = 0.428, Fleaflicker = 0.428)}
-default_weights <- c(CBS = 0.344, Yahoo = 0.400,  ESPN = 0.329,  NFL = 0.329,
-                    FFToday = 0.379, NumberFire = 0.322, FantasyPros = 0.000,
-                    FantasySharks= 0.327, FantasyFootballNerd = 0.000,
-                    WalterFootball = 0.281, RTSports= 0.330,
-                    FantasyData= 0.428, FleaFlicker = 0.428)
+#' \code{c(CBS = 0.145, Yahoo = 0.000,  ESPN = 0.157,  NFL = 0.140,
+#' FFToday = 0.151, NumberFire = 0.142, FantasyPros = 0.000,
+#' FantasySharks= 0.142, FantasyFootballNerd = 0.000,
+#' WalterFootball = 0.130, RTSports= 0.123,
+#' FantasyData= 0.000, FleaFlicker = 0.000, FanDuel = 0.142)}
+default_weights <- c(CBS = 0.145, Yahoo = 0.000,  ESPN = 0.157,  NFL = 0.140,
+                    FFToday = 0.151, NumberFire = 0.142, FantasyPros = 0.000,
+                    FantasySharks= 0.142, FantasyFootballNerd = 0.000,
+                    WalterFootball = 0.130, RTSports= 0.123,
+                    FantasyData= 0.000, FleaFlicker = 0.000, FanDuel = 0.142)
+
+#' Default Weights for Projection Sources
+#'
+#' Object with default weights for each position by source
+default_weights_by_src = list(
+  QB = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  RB = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  WR = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  TE = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  DST = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+          NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+          WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  K = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+        NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+        WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  DB = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  DL = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5),
+  LB = c(CBS = 0.5, Yahoo = 0.5, ESPN = 0.5, NFL = 0.5, FFToday = 0.5, FanDuel = 0.5,
+         NumberFire = 0.5, FantasyPros = 0.5, FantasySharks = 0.5, FantasyFootballNerd = 0.5,
+         WalterFootball = 0.5, RTSports = 0.5, FantasyData = 0.5, FleaFlicker = 0.5)
+)
 
 
+prep_src_weights = function(src_weights = NULL) {
+
+  if(isFALSE(is.list(src_weights))) {
+    positions = c("QB", "RB", "WR", "TE", "DST", "K", "DB", "DL", "LB")
+    l_src_weight = vector("list", length = length(positions))
+    names(l_src_weight) = positions
+
+    for(i in positions) {
+      l_src_weight[[i]] = as.list(src_weights)
+    }
+    src_weights = l_src_weight
+  }
+
+  dplyr::bind_rows(src_weights, .id = "pos") %>%
+    tidyr::pivot_longer(-pos, names_to = "data_src", values_to = "weights")
+
+}
 
 #' Default VOR Baseline
 #'
@@ -128,7 +178,7 @@ score_pts_bracket = function(points, pts_bracket) {
 }
 
 
-score_dst_pts_allowed = function(data_result, pts_bracket) {
+score_dst_pts_allowed = function(data_result, pts_bracket, is_actual = FALSE) {
   week = attr(data_result, "week")
   year = attr(data_result, "season")
   df = data_result[["DST"]]
@@ -140,7 +190,7 @@ score_dst_pts_allowed = function(data_result, pts_bracket) {
     n_games = 16L
   }
 
-  if(week == 0) {
+  if(week == 0 && isFALSE(is_actual)) {
     set.seed(1L)
 
     ids_idx = coalesce(
@@ -160,22 +210,40 @@ score_dst_pts_allowed = function(data_result, pts_bracket) {
     }, ppg, ppg_sd)
     df$dst_pts_allowed[!na_idx] = vapply(game_l, sum, numeric(1L))
   } else {
-    df$dst_pts_allowed[!na_idx] = score_pts_bracket(df$dst_pts_allowed, pts_bracket)
+    df$dst_pts_allowed[!na_idx] = score_pts_bracket(df$dst_pts_allowed[!na_idx], pts_bracket)
   }
   df$dst_pts_allowed
 }
 
-source_points = function(data_result, scoring_rules, return_data_result = FALSE) {
+
+#' Calculate the fantasy points by source
+#'
+#' This function scores the projected fantasy points by data source given the output of
+#' the \link{scrape_data} function. The output is a table in long format with the
+#' projected points by source. NOTE: this function will calculate the projected points
+#' based on the data sources, but it does not impute data if columns are missing
+#' (i.e., if columns are included in the scoring_rules object but not in the source)
+#'
+#' @param data_result An output from the \link{scrape_data} function.
+#' @param scoring_rules The scoring rules to be used for calculations. See
+#' \code{vignette("scoring_settings")} on how to define custom scoring settings.
+#' If omitted then default \link{scoring} settings will be used.
+#' @export
+source_points = function(data_result, scoring_rules, return_data_result = FALSE, is_actual = FALSE) {
 
   year = attr(data_result, "season")
   week = attr(data_result, "week")
+
+  if(is.null(scoring_rules)) {
+    scoring_rules = scoring
+  }
 
   scoring_cleaned = make_scoring_tables(scoring_rules)
   scoring_tables = scoring_cleaned$scoring_tables
   pts_bracket = scoring_cleaned$pts_bracket
 
   # Scoring the points brackets
-  data_result$DST$dst_pts_allowed = score_dst_pts_allowed(data_result, pts_bracket)
+  data_result$DST$dst_pts_allowed = score_dst_pts_allowed(data_result, pts_bracket, is_actual)
 
   l_raw_points = lapply(names(data_result), function(pos) {
     scoring_table = scoring_tables[[pos]]
@@ -218,7 +286,8 @@ default_threshold <-  c(QB = 1, RB = 1, WR = 1, TE = 1, K = 1, DST = 0.1, DL = 1
 #' \link{scrape_data} function. The output is a table containing the projected
 #' points, confidence intervals, standard deviation for points, and if seasonal
 #' data also the VOR values
-#' @param data_result An output from the \link{scrape_data} function
+#' @param data_result An output from the \link{scrape_data} function. The `data_result`
+#' object is intended to have multiple sources included for aggregation.
 #' @param scoring_rules The scoring rules to be used for calculations. See
 #' \code{vignette("scoring_settings")} on how to define custom scoring settings.
 #' If omitted then default \link{scoring} settings will be used.
@@ -252,6 +321,21 @@ projections_table = function(data_result, scoring_rules = NULL, src_weights = NU
   season = attr(data_result, "season")
   week = attr(data_result, "week")
 
+  # Checking how many sources were used
+  n_sources = length(unique(unlist(lapply(data_result, `[[`, "data_src"))))
+  if(n_sources < 3) {
+    sources_message = paste0(
+      "Note: the projections table function is intended to aggregate several sources",
+      "\n",
+      "If you are interested in getting the fantasy points associated with individual ",
+      "\ndata sources, please see if the ffanalytics::source_points() function better ",
+      "\nfits your needs"
+    )
+
+
+    message("Note: the projections table function is intended to aggregate several sources")
+  }
+
   # Computing league type
   if(scoring_rules$rec$all_pos){
     if(is.null(scoring_rules$rec$rec)) {
@@ -278,10 +362,12 @@ projections_table = function(data_result, scoring_rules = NULL, src_weights = NU
   l_pts_bracket = scoring_objs$pts_bracket
 
   # Adding weight and removing empty id's
+  src_weights = prep_src_weights(src_weights)
+
   data_result[] = lapply(data_result, function(df) {
-    df = df[!is.na(df$id), ]
-    df$weights = src_weights[df$data_src]
-    df
+    df %>%
+      dplyr::filter(!is.na(id)) %>%
+      dplyr::left_join(src_weights, c("pos", "data_src"))
   })
 
   # Imputing values ----
@@ -335,13 +421,16 @@ projections_table = function(data_result, scoring_rules = NULL, src_weights = NU
 
       }
 
-      df["id"] %>%
+
+      df[, "id", drop = FALSE] %>%
         filter(!duplicated(id)) %>%
-        left_join(bind_rows(l_avg_types, .id = "avg_type"), "id")
+        left_join(bind_rows(l_avg_types, .id = "avg_type"), "id") %>%
+        dplyr::ungroup()
 
-    })
+    }, simplify = FALSE)
 
-    return(bind_rows(df_l, .id = "position"))
+    return(bind_rows(df_l, .id = "position")) %>%
+      dplyr::ungroup()
 
   }
 

@@ -17,17 +17,45 @@ scrape_cbs = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
     scrape_week = week
   }
 
+  curr_cache = list_ffanalytics_cache(quiet = TRUE)
+  is_cached = "CBS Scrape" %in% curr_cache$object
+
+  if(is_cached) {
+    l_pos = get_cached_object("cbs_scrape.rds")
+
+    pos_match = all(toupper(pos) %in% toupper(sort(names(l_pos))))
+
+    if(isTRUE(pos_match)) {
+
+      scrape_message = paste0(
+        "\n",
+        "Using the CBS scrape that was cached ",
+        curr_cache$hr_min_since_cache[curr_cache$object == "CBS Scrape"],
+        " ago:"
+      )
+      message(scrape_message)
+      return(l_pos[pos])
+
+    } else {
+      clear_ffanalytics_cache("CBS Scrape")
+    }
+  }
+
+
   message("\nThe CBS scrape uses a 2 second delay between pages")
 
   base_link = paste0("https://www.cbssports.com/fantasy/football/")
   site_session = rvest::session(base_link)
 
-  l_pos = lapply(pos, function(pos) {
-    scrape_link = paste0("https://www.cbssports.com/fantasy/football/stats/", pos, "/",
+  l_pos = lapply_safe(pos, function(position) {
+    scrape_link = paste0("https://www.cbssports.com/fantasy/football/stats/", position, "/",
                          season, "/", scrape_week, "/projections/nonppr/")
 
-    Sys.sleep(2L) # temporary, until I get an argument for honoring the crawl delay
-    cat(paste0("Scraping ", pos, " projections from"), scrape_link, sep = "\n  ")
+    if(position != pos[1]) {
+      Sys.sleep(2L)
+    }
+
+    cat(paste0("Scraping ", position, " projections from"), scrape_link, sep = "\n  ")
 
     html_page = site_session %>%
       session_jump_to(scrape_link) %>%
@@ -43,7 +71,7 @@ scrape_cbs = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
     col_names = rename_vec(col_names, cbs_columns)
 
     # Get PID
-    if(pos == "DST") {
+    if(position == "DST") {
       cbs_id = html_page %>%
         rvest::html_elements("span.TeamName a") %>%
         rvest::html_attr("href") %>%
@@ -61,7 +89,7 @@ scrape_cbs = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
       rvest::html_table() %>%
       `names<-`(col_names)
 
-    if(pos != "DST") {
+    if(position != "DST") {
       out_df = out_df %>%
         tidyr::extract(player, c("player", "pos", "team"),
                        ".*?\\s{2,}[A-Z]{1,3}\\s{2,}[A-Z]{2,3}\\s{2,}(.*?)\\s{2,}(.*?)\\s{2,}(.*)") %>%
@@ -77,9 +105,8 @@ scrape_cbs = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
     } else {
       out_df$team = cbs_id
       out_df$data_src = "CBS"
-      dst_ids = ff_player_data[ff_player_data$position == "Def", c("id", "team")]
-      dst_ids$team[dst_ids$team == "OAK"] = "LV"
-      out_df$id = dst_ids$id[match(cbs_id, dst_ids$team)]
+      out_df$id = get_mfl_id(pos = "DST", team = rename_vec(cbs_id, unlist(team_corrections)))
+      out_df$pos = position
       out_df$src_id = player_ids$cbs_id[match(out_df$id, player_ids$id)]
     }
 
@@ -93,13 +120,14 @@ scrape_cbs = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
   names(l_pos) = pos
   attr(l_pos, "season") = season
   attr(l_pos, "week") = week
+
+  cache_object(l_pos, "cbs_scrape.rds")
   l_pos
 }
 
 # NFL ----
 scrape_nfl = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL, week = NULL,
                       draft = TRUE, weekly = TRUE) {
-  message("\nThe NFL.com scrape uses a 2 second delay between pages")
 
   if(is.null(season)) {
     season = get_scrape_year()
@@ -107,6 +135,30 @@ scrape_nfl = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
   if(is.null(week)) {
     week = get_scrape_week()
   }
+
+  curr_cache = list_ffanalytics_cache(quiet = TRUE)
+  is_cached = "NFL Scrape" %in% curr_cache$object
+
+  if(is_cached) {
+    l_pos = get_cached_object("nfl_scrape.rds")
+
+    pos_match = all(toupper(pos) %in% toupper(sort(names(l_pos))))
+
+    if(isTRUE(pos_match)) {
+      scrape_message = paste0(
+        "\n",
+        "Using the NFL scrape that was cached ",
+        curr_cache$hr_min_since_cache[curr_cache$object == "NFL Scrape"],
+        " ago:"
+      )
+      message(scrape_message)
+      return(l_pos[pos])
+    } else {
+      clear_ffanalytics_cache("NFL Scrape")
+    }
+  }
+
+  message("\nThe NFL.com scrape uses a 2 second delay between pages")
 
   pos_scrape = nfl_pos_idx[pos]
 
@@ -116,7 +168,7 @@ scrape_nfl = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
 
   site_session = session(base_link)
 
-  l_pos = lapply(pos, function(pos) {
+  l_pos = lapply_safe(pos, function(pos) {
     pos_scrape = nfl_pos_idx[pos]
 
     n_records = case_when(
@@ -213,22 +265,49 @@ scrape_nfl = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL
   names(l_pos) = pos
   attr(l_pos, "season") = season
   attr(l_pos, "week") = week
+
+  cache_object(l_pos, "nfl_scrape.rds")
   l_pos
 }
 
 # Fantasysharks ----
 scrape_fantasysharks <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB"),
                                  season = NULL, week = NULL, draft = TRUE, weekly = TRUE) {
-  message("\nThe FantasySharks scrape uses a 2 second delay between pages")
-
   if(is.null(season)) {
     season = get_scrape_year()
   }
   if(is.null(week)) {
     week = get_scrape_week()
   }
+
+  curr_cache = list_ffanalytics_cache(quiet = TRUE)
+  is_cached = "FantasySharks Scrape" %in% curr_cache$object
+
+  if(is_cached) {
+    l_pos = get_cached_object("fantasysharks_scrape.rds")
+
+    pos_match = all(toupper(pos) %in% toupper(sort(names(l_pos))))
+
+    if(isTRUE(pos_match)) {
+      scrape_message = paste0(
+        "\n",
+        "Using the FantasySharks scrape that was cached ",
+        curr_cache$hr_min_since_cache[curr_cache$object == "FantasySharks Scrape"],
+        " ago:"
+      )
+      message(scrape_message)
+      return(l_pos[pos])
+    } else {
+      clear_ffanalytics_cache("FantasySharks Scrape")
+    }
+  }
+
+  message("\nThe FantasySharks scrape uses a 2 second delay between pages")
+
   # historical scrapes (doesn't work)
   year = dplyr::case_when(
+    season == 2025 ~ 842,
+    season == 2024 ~ 810,
     season == 2023 ~ 778,
     season == 2022 ~ 746,
     season == 2021 ~ 714,
@@ -244,10 +323,10 @@ scrape_fantasysharks <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL
   } else if (week %in% c(1:22)) {
     segment <- year + week + 8
   } else if (week %in% "ros") {
-    segment <- 717
+    segment <- 813
   }
 
-  l_pos <- lapply(pos, function(pos){
+  l_pos <- lapply_safe(pos, function(pos){
 
     position = dplyr::case_when(
       pos %in% "QB" ~ 1,
@@ -260,14 +339,13 @@ scrape_fantasysharks <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL
       pos %in% "LB" ~ 9,
       pos %in% "DB" ~ 10
     )
-
     scrape_link <- paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?csv=1&Sort=",
                           "&League=-1&Position=",position, "&scoring=1&Segment=", segment, "&uid=4")
 
     Sys.sleep(2L) # temporary, until I get an argument for honoring the crawl delay
     cat(paste0("Scraping ", pos, " projections from"), scrape_link, sep = "\n  ")
 
-    pos_df = data.table::fread(scrape_link, data.table = FALSE, showProgress = FALSE)
+    pos_df = suppressMessages(readr::read_csv(scrape_link, progress = FALSE, name_repair = "minimal"))
     pos_df$Rank = NULL
 
     # Rename columns with new names
@@ -298,6 +376,8 @@ scrape_fantasysharks <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL
   names(l_pos) = pos
   attr(l_pos, "season") = season
   attr(l_pos, "week") = week
+
+  cache_object(l_pos, "fantasysharks_scrape.rds")
   l_pos
 
 }
@@ -306,14 +386,38 @@ scrape_fantasysharks <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL
 scrape_numberfire <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "LB", "DB", "DL"),
                               season = NULL, week = NULL, draft = TRUE, weekly = TRUE) {
 
-  message("\nThe numberFire scrape uses a 2 second delay between pages")
-
   if(is.null(season)) {
     season = get_scrape_year()
   }
   if(is.null(week)) {
     week = get_scrape_week()
   }
+
+  curr_cache = list_ffanalytics_cache(quiet = TRUE)
+  is_cached = "NumberFire Scrape" %in% curr_cache$object
+
+  if(is_cached) {
+    l_pos = get_cached_object("numberfire_scrape.rds")
+
+    pos_match = all(toupper(pos) %in% toupper(sort(names(l_pos))))
+
+    if(isTRUE(pos_match)) {
+      scrape_message = paste0(
+        "\n",
+        "Using the NumberFire scrape that was cached ",
+        curr_cache$hr_min_since_cache[curr_cache$object == "NumberFire Scrape"],
+        " ago:"
+      )
+      message(scrape_message)
+      return(l_pos[pos])
+    } else {
+      clear_ffanalytics_cache("NumberFire Scrape")
+    }
+  }
+
+  message("\nThe numberFire scrape uses a 2 second delay between pages")
+
+  message("\nThe numberFire scrape uses a 2 second delay between pages")
 
   base_link <- paste0("https://www.numberfire.com/nfl/fantasy/fantasy-football-projections")
   site_session <- rvest::session(base_link)
@@ -326,7 +430,7 @@ scrape_numberfire <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "LB", 
   }
 
 
-  l_pos <- lapply(site_pos, function(pos){
+  l_pos <- lapply_safe(site_pos, function(pos){
 
     position <- dplyr::case_when(
       pos %in% "QB" ~ "qb",
@@ -454,6 +558,8 @@ scrape_numberfire <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "LB", 
 
   attr(l_pos, "season") = season
   attr(l_pos, "week") = week
+
+  cache_object(l_pos, "numberfire_scrape.rds")
   l_pos
 
 }
@@ -469,6 +575,28 @@ scrape_walterfootball <- function(pos = c("QB", "RB", "WR", "TE", "K"),
     week = get_scrape_week()
   }
 
+  curr_cache = list_ffanalytics_cache(quiet = TRUE)
+  is_cached = "WalterFootball Scrape" %in% curr_cache$object
+
+  if(is_cached) {
+    l_pos = get_cached_object("walterfootball_scrape.rds")
+
+    pos_match = all(toupper(pos) %in% toupper(sort(names(l_pos))))
+
+    if(isTRUE(pos_match)) {
+      scrape_message = paste0(
+        "\n",
+        "Using the WalterFootball scrape that was cached ",
+        curr_cache$hr_min_since_cache[curr_cache$object == "WalterFootball Scrape"],
+        " ago:"
+      )
+      message(scrape_message)
+      return(l_pos[pos])
+    } else {
+      clear_ffanalytics_cache("WalterFootball Scrape")
+    }
+  }
+
   # Currently unnamed argument for imputing REG TD columns, defaults to TRUE
   url <- paste0("http://walterfootball.com/fantasy", season, "rankingsexcel.xlsx")
 
@@ -476,7 +604,7 @@ scrape_walterfootball <- function(pos = c("QB", "RB", "WR", "TE", "K"),
   xl_download <- download.file(url = url, destfile = xlsx_file, mode = "wb", quiet = TRUE)
 
 
-  l_pos <- lapply(pos, function(pos){
+  l_pos <- lapply_safe(pos, function(pos){
 
     cat(paste0("Scraping ", pos, " projections from"), url, sep = "\n  ")
 
@@ -541,6 +669,8 @@ scrape_walterfootball <- function(pos = c("QB", "RB", "WR", "TE", "K"),
   names(l_pos) = pos
   attr(l_pos, "season") = season
   attr(l_pos, "week") = week
+
+  cache_object(l_pos, "walterfootball_scrape.rds")
   l_pos
 
 }
@@ -556,6 +686,23 @@ scrape_fleaflicker <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL",
     week = get_scrape_week()
   }
 
+
+  curr_cache = list_ffanalytics_cache(quiet = TRUE)
+  is_cached = "FleaFlicker Scrape" %in% curr_cache$object
+
+  if(is_cached) {
+    l_pos = get_cached_object("fleaflicker_scrape.rds")
+    pos_match = all(toupper(pos) %in% toupper(sort(names(l_pos))))
+    if(isTRUE(pos_match)) {
+      scrape_message = paste0("\n", "Using the FleaFlicker scrape that was cached ",
+        curr_cache$hr_min_since_cache[curr_cache$object == "FleaFlicker Scrape"],
+        " ago:")
+      message(scrape_message)
+      return(l_pos[pos])
+    } else {
+      clear_ffanalytics_cache("FleaFlicker Scrape")
+    }
+  }
   # IDP positions
   if("DL" %in% pos) {
     pos <- c(pos, "DE", "DT")
@@ -571,7 +718,7 @@ scrape_fleaflicker <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL",
   site_session <- session(base_link)
 
 
-  l_pos <- lapply(pos, function(pos){
+  l_pos <- lapply_safe(pos, function(pos){
 
     position <- case_when(pos %in% "QB" ~ 4,
                           pos %in% "RB" ~ 1,
@@ -753,6 +900,8 @@ scrape_fleaflicker <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL",
     l_pos$S <- NULL
   }
 
+  cache_object(l_pos, "fleaflicker_scrape.rds")
+
 
   l_pos
 
@@ -801,7 +950,7 @@ scrape_fftoday <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL", "LB
   }
 
 
-  l_pos <- lapply(pos, function(pos){
+  l_pos <- lapply_safe(pos, function(pos){
 
     position = dplyr::case_when(
       pos == "QB" ~ 10,
@@ -965,7 +1114,7 @@ scrape_fantasypros = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"),
   base_link = paste0("https://www.fantasypros.com/nfl/projections")
   site_session = rvest::session(base_link)
 
-  l_pos = lapply(pos, function(pos) {
+  l_pos = lapply_safe(pos, function(pos) {
     scrape_link = paste0("https://www.fantasypros.com/nfl/projections/",
                          tolower(pos), scrape_week)
 
@@ -1034,6 +1183,8 @@ scrape_fantasypros = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"),
   names(l_pos) = pos
   attr(l_pos, "season") = season
   attr(l_pos, "week") = week
+
+  cache_object(l_pos, "walterfootball_scrape.rds")
   l_pos
 }
 
@@ -1055,7 +1206,7 @@ scrape_rtsports = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"),
 
   base_url = "https://www.freedraftguide.com/football/draft-guide-rankings-provider.php"
 
-  l_pos = lapply(pos, function(x) {
+  l_pos = lapply_safe(pos, function(x) {
     if(x != pos[1]) {
       Sys.sleep(5)
     }
@@ -1117,8 +1268,8 @@ scrape_rtsports = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"),
 }
 
 # ESPN ----
-scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NULL, week = NULL,
-                       draft = TRUE, weekly = TRUE) {
+scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB"), season = NULL, week = NULL,
+                       draft = TRUE, weekly = TRUE, espn_league_id = NULL) {
 
   message("\nThe ESPN scrape uses a 2 second delay between pages")
 
@@ -1128,11 +1279,18 @@ scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NUL
   if(is.null(week)) {
     week = get_scrape_week()
   }
+  if(any(pos %in% c("DL", "LB", "DB")) && is.null(espn_league_id)){
+    message("Must provide a valid espn_league_id to get DL, LB, and DB")
+    pos = setdiff(pos, c("DL", "LB", "DB"))
+  }
 
-  slot_nums = c("QB" = 0, "RB" = 2, "WR" = 4, "TE" = 6, "K" = 17, "DST" = 16)
+  slot_nums = c("QB" = 0, "RB" = 2, "WR" = 4, "TE" = 6,
+                "K" = 17, "DST" = 16,
+                "DT" = 8, "DE" = 9, "LB" = 10, "DL" = 11, "CB" = 12, "DB" = 14
+                )
   position = pos
 
-  l_pos = lapply(position, function(pos){
+  l_pos = lapply_safe(position, function(pos){
 
     if(pos != position[1]) {
       Sys.sleep(2)
@@ -1145,12 +1303,28 @@ scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NUL
       pos == "WR" ~ 150,
       pos == "TE" ~ 60,
       pos == "K" ~ 35,
-      pos == "DST" ~ 32
+      pos == "DST" ~ 32,
+      pos == "DL" ~ 90,
+      pos == "DB" ~ 60,
+      pos == "LB" ~ 60
     )
-    base_url = paste0(
-      "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/", season,
-      "/segments/0/leaguedefaults/3?scoringPeriodId=0&view=kona_player_info"
-    )
+
+    if(pos %in% c("DL", "DB", "LB")) {
+      base_url = paste0(
+        "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/", season,
+        "/segments/0/leagues/", espn_league_id, "?scoringPeriodId=", week, "&view=kona_player_info"
+      )
+      #1595759
+      pos_cols = espn_columns[!grepl("^dst_", espn_columns)]
+
+    } else {
+      base_url = paste0(
+        "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/", season,
+        "/segments/0/leaguedefaults/3?scoringPeriodId=0&view=kona_player_info"
+      )
+      pos_cols = espn_columns[!grepl("^idp_", espn_columns)]
+    }
+
     cat(paste0("Scraping ", pos, " projections from"),
         "https://fantasy.espn.com/football/players/projections", sep = "\n  ")
 
@@ -1172,7 +1346,7 @@ scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NUL
       '"offset":0,',
       '"filterRanksForScoringPeriodIds":{"value":[2]},',
       '"filterRanksForRankTypes":{"value":["PPR"]},',
-      '"filterRanksForSlotIds":{"value":[0,2,4,6,17,16]},',
+      '"filterRanksForSlotIds":{"value":[0,2,4,6,17,16,15]},',
       '"filterStatsForTopScoringPeriodIds":{"value":2,',
       '"additionalValue":["00', season, '","10', season, '","11', season, week, '","02', season, '"]}}}'
     )
@@ -1203,8 +1377,8 @@ scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NUL
 
       # Player stats (only those on)
       l_players[[i]] = espn_json[[i]]$player$stats[[1]]$stats
-      l_players[[i]] = l_players[[i]][names(l_players[[i]]) %in% names(espn_columns)]
-      names(l_players[[i]]) = espn_columns[names(l_players[[i]])]
+      l_players[[i]] = l_players[[i]][names(l_players[[i]]) %in% names(pos_cols)]
+      names(l_players[[i]]) = pos_cols[names(l_players[[i]])]
       l_players[[i]][] = lapply(l_players[[i]], round)
 
       # Misc player info
@@ -1218,12 +1392,12 @@ scrape_espn = function(pos = c("QB", "RB", "WR", "TE", "K", "DST"), season = NUL
     out_df$data_src = "ESPN"
 
     if(pos == "DST") { # ESPN ID's coming in as negative for 2023 wk 0 DST
-      out_df$id = ffanalytics:::get_mfl_id(
+      out_df$id = get_mfl_id(
         team = out_df$team,
         pos = out_df$position
       )
     } else {
-      out_df$id = ffanalytics:::get_mfl_id(
+      out_df$id = get_mfl_id(
         out_df$espn_id,
         player_name = out_df$player_name,
         pos = out_df$position,
@@ -1274,6 +1448,287 @@ scrape_fantasydata = function(pos = NULL, season = NULL, week = NULL,
   message(
     "\nThe FantasyData scrape is behind a paywall and is not supported at this time"
       )
+}
+
+# FanDuel ----
+scrape_fanduel <- function(pos = c("QB", "RB", "WR", "TE", "K", "DST"),
+                           season = NULL, week = NULL, draft = TRUE, weekly = TRUE) {
+
+  if(is.null(week)) {
+    season = get_scrape_year()
+  }
+
+  if(is.null(week)) {
+    week = get_scrape_week()
+  }
+
+  if(week > 0) {
+    proj_type = "WEEKLY"
+  } else {
+    proj_type = "REMAINING"
+  }
+
+  if(is.null(pos)) {
+    pos = c("QB", "RB", "WR", "TE", "K", "DST")
+  } else {
+    pos
+  }
+
+  message(paste0("\nScraping FanDuel projections for ", paste(pos, collapse = ", "), "..."))
+
+  query <- '
+  query GetProjections($input: ProjectionsInput!) {
+    getProjections(input: $input) {
+      ... on NflSkill {
+        player {
+          numberFireId
+          name
+          position
+        }
+        team {
+          numberFireId
+          name
+          abbreviation
+        }
+        gameInfo {
+          homeTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          awayTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          gameTime
+        }
+        salary
+        value
+        completionsAttempts
+        passingYards
+        passingTouchdowns
+        interceptionsThrown
+        rushingAttempts
+        rushingYards
+        rushingTouchdowns
+        receptions
+        targets
+        receivingYards
+        receivingTouchdowns
+        fantasy
+        positionRank
+        overallRank
+        opponentDefensiveRank
+      }
+      ... on NflKicker {
+        player {
+          numberFireId
+          name
+          position
+        }
+        team {
+          numberFireId
+          name
+
+          abbreviation
+        }
+        gameInfo {
+          homeTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          awayTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          gameTime
+        }
+        salary
+        value
+        extraPointsAttempted
+        extraPointsMade
+        fieldGoalsAttempted
+        fieldGoalsMade
+        fieldGoalsMade0To19
+        fieldGoalsMade20To29
+        fieldGoalsMade30To39
+        fieldGoalsMade40To49
+        fieldGoalsMade50Plus
+        fantasy
+        positionRank
+        opponentDefensiveRank
+      }
+      ... on NflDefenseSt {
+        player {
+          numberFireId
+          name
+          position
+        }
+        team {
+          numberFireId
+          name
+          abbreviation
+        }
+        gameInfo {
+          homeTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          awayTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          gameTime
+        }
+        salary
+        value
+        pointsAllowed
+        yardsAllowed
+        sacks
+        interceptions
+        fumblesRecovered
+        touchdowns
+        fantasy
+        positionRank
+        opponentOffensiveRank
+      }
+      ... on NflDefensePlayer {
+        player {
+          numberFireId
+          name
+          position
+        }
+        team {
+          numberFireId
+          name
+          abbreviation
+        }
+        gameInfo {
+          homeTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          awayTeam {
+            numberFireId
+            name
+            abbreviation
+          }
+          gameTime
+        }
+        tackles
+        sacks
+        interceptions
+        touchdowns
+        passesDefended
+        fumblesRecovered
+        opponentOffensiveRank
+      }
+    }
+  }
+  '
+
+  data_payload <- list(
+    query = query,
+    variables = list(
+      input = list(
+        type = proj_type,
+        position = "NFL_SKILL",
+        sport = "NFL"
+      )
+    ),
+    operationName = "GetProjections"
+  )
+
+  req <- httr2::request("https://fdresearch-api.fanduel.com/graphql") %>%
+    httr2::req_headers(
+      Accept = "*/*",
+      "Content-Type" = "application/json",
+      "Sec-Fetch-Site" = "same-site",
+      Origin = "https://www.fanduel.com",
+      "Sec-Fetch-Dest" = "empty",
+      "Accept-Language" = "en-US,en;q=0.9",
+      "Sec-Fetch-Mode" = "cors",
+      "Accept-Encoding" = "gzip, deflate"
+    ) %>%
+    httr2::req_user_agent(
+      "ffanalytics R package (https://github.com/FantasyFootballAnalytics/ffanalytics)"
+      )
+
+  position_groups <- list(
+    NFL_SKILL  = c("QB","RB","WR","TE"),
+    NFL_KICKER = c("K"),
+    NFL_D_ST   = c("DST")
+  )
+
+  graphql_positions <- names(position_groups)[
+    vapply(position_groups, function(x) any(pos %in% x), logical(1))
+  ]
+
+  all_dfs <- map(graphql_positions, function(graph_pos) {
+    data_payload$variables$input$position <- graph_pos
+
+    resp <- req %>%
+      httr2::req_body_json(data_payload) %>%
+      httr2::req_perform()
+
+    result <- httr2::resp_body_json(
+      resp,
+      simplifyDataFrame = TRUE,
+      flatten = TRUE
+    )
+
+    df <- dplyr::as_tibble(result$data$getProjections)
+
+    names(df) <- gsub("\\.", "_", names(df))
+    names(df) <- rename_vec(names(df), fanduel_columns)
+
+    df <- df %>%
+      type.convert(as.is = TRUE) %>%
+      dplyr::mutate(
+        data_src  = "FanDuel",
+        proj_type = proj_type,
+        pos = ifelse(pos == "D", "DST", pos),
+        id = get_mfl_id(df$src_id,
+                        player_name = df$player,
+                        team = df$team,
+                        pos = df$pos),
+        src_id = as.character(src_id)
+      )
+
+    if ("completionsAttempts" %in% names(df)) {
+      df <- df %>%
+        tidyr::separate(
+          completionsAttempts,
+          into = c("pass_comp", "pass_att"),
+          sep = "/",
+          convert = TRUE
+        )
+    }
+
+    df %>% dplyr::filter(pos %in% position_groups[[graph_pos]])
+  })
+
+  out_df <- all_dfs %>%
+    dplyr::bind_rows() %>%
+    dplyr::select(id, src_id, player, pos, team, everything())
+  l_pos  <- split(out_df, out_df$pos)
+  l_pos <- l_pos[pos[pos %in% names(l_pos)]]
+  l_pos <- purrr::map(l_pos, function(df) {
+    df %>%
+      dplyr::select(-salary, -value) %>%
+      dplyr::select(where(~ !all(is.na(.))))
+  })
+
+  attr(l_pos, "season") <- season
+  attr(l_pos, "week") <- week
+
+  l_pos
 }
 
 # Depreceated ----
